@@ -848,23 +848,29 @@ function setColorEl(id, text, cls) {
 
 function getWeekStart() {
   const now = new Date();
-  const day = now.getDay();          // 0=Sun
-  const diff = (day + 6) % 7;       // Monday = 0
+  const day = now.getDay();                // 0=Sun, 1=Mon … 6=Sat
+  // (day + 6) % 7 maps Sun=0→6, Mon=1→0, Tue=2→1 … giving days-since-Monday
+  const daysSinceMonday = (day + 6) % 7;
   const mon = new Date(now);
-  mon.setDate(now.getDate() - diff);
+  mon.setDate(now.getDate() - daysSinceMonday);
   return mon.toISOString().split('T')[0];
 }
 
 /* =====================================================
    CSV EXPORT
 ===================================================== */
+function csvQuote(str) {
+  // Always wrap strings in quotes and escape internal double-quotes
+  return '"' + String(str).replace(/"/g, '""') + '"';
+}
+
 function exportCSV() {
   if (!trades.length) { toast('No trades to export.', 'info'); return; }
 
   const headers = ['id','date','ticker','type','strategy','entry','exit','qty','fees','notes','net_pnl','pct_return'];
   const rows = trades.map(t => [
-    t.id, t.date, t.ticker, t.type, t.strategy || '',
-    t.entry, t.exit, t.qty, t.fees || 0, `"${(t.notes || '').replace(/"/g,'""')}"`,
+    csvQuote(t.id), csvQuote(t.date), csvQuote(t.ticker), csvQuote(t.type), csvQuote(t.strategy || ''),
+    t.entry, t.exit, t.qty, t.fees || 0, csvQuote(t.notes || ''),
     calcNetPnL(t).toFixed(4), calcReturnPct(t).toFixed(4),
   ]);
 
