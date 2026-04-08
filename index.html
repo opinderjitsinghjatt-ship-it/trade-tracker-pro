@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trade Tracker Pro — Trading Journal</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- ===== HEADER ===== -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-icon">📈</span>
+        <span class="logo-text">Trade Tracker <span class="accent">Pro</span></span>
+      </div>
+      <nav class="tab-nav" role="tablist">
+        <button class="tab-btn active" data-tab="dashboard"   role="tab" aria-selected="true">Dashboard</button>
+        <button class="tab-btn"        data-tab="trade-entry" role="tab" aria-selected="false">Log Trade</button>
+        <button class="tab-btn"        data-tab="pnl-calc"    role="tab" aria-selected="false">P&amp;L Calc</button>
+        <button class="tab-btn"        data-tab="pos-size"    role="tab" aria-selected="false">Position Size</button>
+        <button class="tab-btn"        data-tab="risk-mgmt"   role="tab" aria-selected="false">Risk Mgmt</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="app-main">
+
+    <!-- ===== TAB: DASHBOARD ===== -->
+    <section id="tab-dashboard" class="tab-panel active" role="tabpanel">
+      <div class="section-header">
+        <h2>Dashboard</h2>
+        <div class="header-actions">
+          <button id="btn-export-csv" class="btn btn-secondary">⬇ Export CSV</button>
+          <label class="btn btn-secondary" id="import-label">
+            ⬆ Import CSV
+            <input type="file" id="import-csv" accept=".csv" hidden />
+          </label>
+          <button id="btn-clear-all" class="btn btn-danger">🗑 Clear All</button>
+        </div>
+      </div>
+
+      <!-- Summary cards -->
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-label">Total Trades</div>
+          <div class="stat-value" id="stat-total">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Win Rate</div>
+          <div class="stat-value" id="stat-winrate">0.00%</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Net P&amp;L</div>
+          <div class="stat-value" id="stat-netpnl">$0.00</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Profit Factor</div>
+          <div class="stat-value" id="stat-pf">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Avg Win</div>
+          <div class="stat-value green" id="stat-avgwin">$0.00</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Avg Loss</div>
+          <div class="stat-value red" id="stat-avgloss">$0.00</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Best Trade</div>
+          <div class="stat-value green" id="stat-best">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Worst Trade</div>
+          <div class="stat-value red" id="stat-worst">—</div>
+        </div>
+      </div>
+
+      <!-- P&L Chart -->
+      <div class="chart-container">
+        <h3>Cumulative P&amp;L</h3>
+        <canvas id="pnl-chart" height="200"></canvas>
+        <p class="chart-empty" id="chart-empty">No trade data yet. Log trades to see your equity curve.</p>
+      </div>
+
+      <!-- Filters -->
+      <div class="filter-bar">
+        <input type="text"   id="filter-ticker"   placeholder="Filter by ticker…" class="input-sm" />
+        <select id="filter-strategy" class="input-sm">
+          <option value="">All strategies</option>
+          <option>Scalping</option>
+          <option>Day Trade</option>
+          <option>Swing</option>
+          <option>Position Trade</option>
+          <option>Momentum</option>
+          <option>Arbitrage</option>
+          <option>Other</option>
+        </select>
+        <input type="date" id="filter-from" class="input-sm" title="From date" />
+        <input type="date" id="filter-to"   class="input-sm" title="To date" />
+        <button id="btn-apply-filter" class="btn btn-primary btn-sm">Apply</button>
+        <button id="btn-clear-filter" class="btn btn-ghost btn-sm">Clear</button>
+      </div>
+
+      <!-- Trade table -->
+      <div class="table-wrap">
+        <table id="trades-table" class="trades-table">
+          <thead>
+            <tr>
+              <th data-sort="date"     class="sortable">Date <span class="sort-icon">⇅</span></th>
+              <th data-sort="ticker"   class="sortable">Ticker <span class="sort-icon">⇅</span></th>
+              <th data-sort="type"     class="sortable">Type <span class="sort-icon">⇅</span></th>
+              <th data-sort="strategy" class="sortable">Strategy <span class="sort-icon">⇅</span></th>
+              <th data-sort="entry"    class="sortable">Entry <span class="sort-icon">⇅</span></th>
+              <th data-sort="exit"     class="sortable">Exit <span class="sort-icon">⇅</span></th>
+              <th data-sort="qty"      class="sortable">Qty <span class="sort-icon">⇅</span></th>
+              <th data-sort="fees"     class="sortable">Fees <span class="sort-icon">⇅</span></th>
+              <th data-sort="pnl"      class="sortable">Net P&amp;L <span class="sort-icon">⇅</span></th>
+              <th data-sort="pct"      class="sortable">Return% <span class="sort-icon">⇅</span></th>
+              <th>Notes</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="trades-body">
+            <tr class="empty-row"><td colspan="12">No trades logged yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===== TAB: TRADE ENTRY ===== -->
+    <section id="tab-trade-entry" class="tab-panel" role="tabpanel" hidden>
+      <div class="section-header">
+        <h2 id="trade-form-title">Log a Trade</h2>
+      </div>
+      <form id="trade-form" class="form-grid" novalidate>
+        <input type="hidden" id="edit-id" value="" />
+
+        <div class="form-group">
+          <label for="trade-date">Date *</label>
+          <input type="date" id="trade-date" required />
+        </div>
+
+        <div class="form-group">
+          <label for="trade-ticker">Ticker / Symbol *</label>
+          <input type="text" id="trade-ticker" placeholder="e.g. AAPL, BTC" required />
+        </div>
+
+        <div class="form-group">
+          <label for="trade-type">Trade Type *</label>
+          <select id="trade-type" required>
+            <option value="">Select…</option>
+            <option value="Long">Long (Buy)</option>
+            <option value="Short">Short (Sell)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="trade-strategy">Strategy</label>
+          <select id="trade-strategy">
+            <option value="">Select…</option>
+            <option>Scalping</option>
+            <option>Day Trade</option>
+            <option>Swing</option>
+            <option>Position Trade</option>
+            <option>Momentum</option>
+            <option>Arbitrage</option>
+            <option>Other</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="trade-entry">Entry Price *</label>
+          <input type="number" id="trade-entry" placeholder="0.00" step="0.0001" min="0" required />
+        </div>
+
+        <div class="form-group">
+          <label for="trade-exit">Exit Price *</label>
+          <input type="number" id="trade-exit" placeholder="0.00" step="0.0001" min="0" required />
+        </div>
+
+        <div class="form-group">
+          <label for="trade-qty">Shares / Units *</label>
+          <input type="number" id="trade-qty" placeholder="0" step="0.0001" min="0" required />
+        </div>
+
+        <div class="form-group">
+          <label for="trade-fees">Fees / Commission ($)</label>
+          <input type="number" id="trade-fees" placeholder="0.00" step="0.01" min="0" value="0" />
+        </div>
+
+        <div class="form-group span-2">
+          <label for="trade-notes">Notes</label>
+          <textarea id="trade-notes" rows="3" placeholder="Setup, market conditions, lessons learned…"></textarea>
+        </div>
+
+        <!-- Live preview -->
+        <div class="form-group span-2">
+          <div class="pnl-preview" id="pnl-preview" hidden>
+            <span class="preview-label">Est. Net P&amp;L:</span>
+            <span class="preview-value" id="preview-pnl">—</span>
+            <span class="preview-label" style="margin-left:1.5rem">Return:</span>
+            <span class="preview-value" id="preview-pct">—</span>
+          </div>
+        </div>
+
+        <div class="form-group span-2 form-actions">
+          <button type="submit" class="btn btn-primary" id="btn-save-trade">💾 Save Trade</button>
+          <button type="button" class="btn btn-ghost"   id="btn-cancel-edit" hidden>Cancel Edit</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ===== TAB: P&L CALCULATOR ===== -->
+    <section id="tab-pnl-calc" class="tab-panel" role="tabpanel" hidden>
+      <div class="section-header"><h2>P&amp;L Calculator</h2></div>
+      <div class="calc-grid">
+
+        <!-- P&L panel -->
+        <div class="calc-card">
+          <h3>Profit / Loss</h3>
+          <div class="form-group">
+            <label for="calc-type">Trade Type</label>
+            <select id="calc-type">
+              <option value="Long">Long (Buy)</option>
+              <option value="Short">Short (Sell)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="calc-entry">Entry Price</label>
+            <input type="number" id="calc-entry" placeholder="0.00" step="0.0001" min="0" />
+          </div>
+          <div class="form-group">
+            <label for="calc-exit">Exit Price</label>
+            <input type="number" id="calc-exit" placeholder="0.00" step="0.0001" min="0" />
+          </div>
+          <div class="form-group">
+            <label for="calc-qty">Shares / Units</label>
+            <input type="number" id="calc-qty" placeholder="0" step="0.0001" min="0" />
+          </div>
+          <div class="form-group">
+            <label for="calc-fees">Fees ($)</label>
+            <input type="number" id="calc-fees" placeholder="0.00" step="0.01" min="0" value="0" />
+          </div>
+          <button class="btn btn-primary full-width" id="btn-calc-pnl">Calculate</button>
+
+          <div class="result-box" id="pnl-results" hidden>
+            <div class="result-row">
+              <span>Gross P&amp;L</span>
+              <span id="res-gross">—</span>
+            </div>
+            <div class="result-row">
+              <span>Net P&amp;L</span>
+              <span id="res-net">—</span>
+            </div>
+            <div class="result-row">
+              <span>% Return</span>
+              <span id="res-pct">—</span>
+            </div>
+            <div class="result-row">
+              <span>Cost Basis</span>
+              <span id="res-cost">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Risk/Reward panel -->
+        <div class="calc-card">
+          <h3>Risk / Reward Ratio</h3>
+          <div class="form-group">
+            <label for="rr-entry">Entry Price</label>
+            <input type="number" id="rr-entry" placeholder="0.00" step="0.0001" min="0" />
+          </div>
+          <div class="form-group">
+            <label for="rr-stop">Stop Loss Price</label>
+            <input type="number" id="rr-stop" placeholder="0.00" step="0.0001" min="0" />
+          </div>
+          <div class="form-group">
+            <label for="rr-target">Take Profit Price</label>
+            <input type="number" id="rr-target" placeholder="0.00" step="0.0001" min="0" />
+          </div>
+          <button class="btn btn-primary full-width" id="btn-calc-rr">Calculate</button>
+
+          <div class="result-box" id="rr-results" hidden>
+            <div class="result-row">
+              <span>Risk per Share</span>
+              <span id="res-risk-share">—</span>
+            </div>
+            <div class="result-row">
+              <span>Reward per Share</span>
+              <span id="res-reward-share">—</span>
+            </div>
+            <div class="result-row">
+              <span>Risk/Reward Ratio</span>
+              <span id="res-rr-ratio">—</span>
+            </div>
+            <div class="result-row">
+              <span>Break-even Win Rate</span>
+              <span id="res-breakeven">—</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ===== TAB: POSITION SIZE CALCULATOR ===== -->
+    <section id="tab-pos-size" class="tab-panel" role="tabpanel" hidden>
+      <div class="section-header"><h2>Position Size Calculator</h2></div>
+      <div class="calc-grid single">
+        <div class="calc-card">
+          <h3>Calculate Optimal Position Size</h3>
+          <div class="form-group">
+            <label for="ps-balance">Account Balance ($)</label>
+            <input type="number" id="ps-balance" placeholder="10000" step="0.01" min="0" />
+          </div>
+          <div class="form-group">
+            <label for="ps-risk-pct">Risk per Trade (%)</label>
+            <input type="number" id="ps-risk-pct" placeholder="1" step="0.1" min="0" max="100" />
+          </div>
+          <div class="form-group">
+            <label for="ps-entry">Entry Price ($)</label>
+            <input type="number" id="ps-entry" placeholder="0.00" step="0.0001" min="0" />
+          </div>
+          <div class="form-group">
+            <label for="ps-stop">Stop Loss Price ($)</label>
+            <input type="number" id="ps-stop" placeholder="0.00" step="0.0001" min="0" />
+          </div>
+          <button class="btn btn-primary full-width" id="btn-calc-pos">Calculate Position</button>
+
+          <div class="result-box" id="pos-results" hidden>
+            <div class="result-row highlight">
+              <span>Recommended Shares</span>
+              <span id="res-shares">—</span>
+            </div>
+            <div class="result-row">
+              <span>Dollar Risk</span>
+              <span id="res-dollar-risk">—</span>
+            </div>
+            <div class="result-row">
+              <span>Position Value</span>
+              <span id="res-pos-value">—</span>
+            </div>
+            <div class="result-row">
+              <span>% of Account Used</span>
+              <span id="res-acct-pct">—</span>
+            </div>
+            <div class="result-row">
+              <span>Risk per Share</span>
+              <span id="res-risk-per-share">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== TAB: RISK MANAGEMENT ===== -->
+    <section id="tab-risk-mgmt" class="tab-panel" role="tabpanel" hidden>
+      <div class="section-header">
+        <h2>Risk Management</h2>
+      </div>
+
+      <!-- Daily loss limit -->
+      <div class="risk-grid">
+        <div class="risk-card">
+          <h3>Daily Loss Limit</h3>
+          <div class="form-group">
+            <label for="daily-limit">Max Daily Loss ($)</label>
+            <input type="number" id="daily-limit" placeholder="500" step="0.01" min="0" />
+          </div>
+          <button class="btn btn-primary" id="btn-set-daily">Set Limit</button>
+          <div class="result-box" style="margin-top:1rem">
+            <div class="result-row">
+              <span>Today's P&amp;L</span>
+              <span id="risk-today-pnl">$0.00</span>
+            </div>
+            <div class="result-row">
+              <span>Daily Limit</span>
+              <span id="risk-daily-limit-display">Not set</span>
+            </div>
+            <div class="result-row">
+              <span>Status</span>
+              <span id="risk-daily-status" class="badge badge-ok">OK</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Streak tracker -->
+        <div class="risk-card">
+          <h3>Win / Loss Streaks</h3>
+          <div class="result-box">
+            <div class="result-row">
+              <span>Current Streak</span>
+              <span id="risk-streak">—</span>
+            </div>
+            <div class="result-row">
+              <span>Longest Win Streak</span>
+              <span id="risk-max-win-streak" class="green">—</span>
+            </div>
+            <div class="result-row">
+              <span>Longest Loss Streak</span>
+              <span id="risk-max-loss-streak" class="red">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Weekly summary -->
+        <div class="risk-card">
+          <h3>This Week's Summary</h3>
+          <div class="result-box">
+            <div class="result-row">
+              <span>Trades</span>
+              <span id="risk-week-trades">0</span>
+            </div>
+            <div class="result-row">
+              <span>Win Rate</span>
+              <span id="risk-week-wr">0.00%</span>
+            </div>
+            <div class="result-row">
+              <span>Net P&amp;L</span>
+              <span id="risk-week-pnl">$0.00</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Monthly summary -->
+        <div class="risk-card">
+          <h3>This Month's Summary</h3>
+          <div class="result-box">
+            <div class="result-row">
+              <span>Trades</span>
+              <span id="risk-month-trades">0</span>
+            </div>
+            <div class="result-row">
+              <span>Win Rate</span>
+              <span id="risk-month-wr">0.00%</span>
+            </div>
+            <div class="result-row">
+              <span>Net P&amp;L</span>
+              <span id="risk-month-pnl">$0.00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Monthly P&L bar chart -->
+      <div class="chart-container" style="margin-top:2rem">
+        <h3>Monthly P&amp;L Breakdown</h3>
+        <canvas id="monthly-chart" height="180"></canvas>
+        <p class="chart-empty" id="monthly-chart-empty">No trade data yet.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Edit modal (reuses trade form via tab switch) -->
+  <div id="toast-container" aria-live="polite"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
